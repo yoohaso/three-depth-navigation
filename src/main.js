@@ -81,9 +81,16 @@ MOCK_DATA.forEach(category => {
   });
 
   element.addEventListener('click', e => {
-    const { id } = e.target;
+    const { id: targetId } = e.target;
 
-    if (secondBoard.firstElementChild && secondBoard.firstElementChild.id === id) {
+    for (let i = 0; i < firstBoard.children.length; i++) {
+      if (firstBoard.children[i].classList.contains('selected')) {
+        firstBoard.children[i].classList.remove('selected');
+      }
+    }
+    element.classList.add('selected');
+
+    if (secondBoard.firstElementChild && secondBoard.firstElementChild.id === targetId) {
       return;
     }
 
@@ -91,17 +98,22 @@ MOCK_DATA.forEach(category => {
       secondBoard.innerHTML = '';
     }
 
-    const div = document.createElement('div');
-    div.setAttribute('id', id);
-
-    const children = MOCK_DATA.find(ele => ele.id === id).groups;
+    const children = MOCK_DATA.find(ele => ele.id === targetId).groups;
     children.forEach(group => {
       const element = createElement({ id: group.id, text: group.group });
 
       element.addEventListener('click', e => {
-        const { id } = e.target;
+        const { id: targetId } = e.target;
 
-        if (thirdsBoard.firstElementChild && thirdsBoard.firstElementChild.id === id) {
+        for (let i = 0; i < secondBoard.children.length; i++) {
+          if (secondBoard.children[i].classList.contains('selected')) {
+            secondBoard.children[i].classList.remove('selected');
+          }
+        }
+
+        element.classList.add('selected');
+
+        if (thirdsBoard.firstElementChild && thirdsBoard.firstElementChild.id === targetId) {
           return;
         }
 
@@ -109,20 +121,15 @@ MOCK_DATA.forEach(category => {
           thirdsBoard.innerHTML = '';
         }
 
-        const div = document.createElement('div');
-        div.setAttribute('id', id);
-
         group.services.forEach(ele => {
           const element = createElement({ id: ele, text: ele });
-          div.appendChild(element);
+          thirdsBoard.append(element);
         });
-
-        thirdsBoard.append(div);
       });
-      div.appendChild(element);
+
+      secondBoard.appendChild(element);
     });
 
-    secondBoard.appendChild(div);
     thirdsBoard.innerHTML = '';
   });
 
