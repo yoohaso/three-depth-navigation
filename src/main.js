@@ -1,7 +1,21 @@
 import './style.css';
 import { worker } from './mock/browser';
 
+/**
+ * 디자인 패턴 중 상태 패턴의 사용이 적절해 보이긴 함..
+ * 어떠한 이벤트의 발생으로 UI의 변화가 발생하니까..?
+ *  mouseover
+ * clickMenu
+ */
+
 worker.start().then(async () => {
+  const navbar = document.querySelector('nav');
+
+  navbar.addEventListener('click', () => {
+    const menu = document.querySelector('#menu');
+    menu.style.display = 'flex';
+  }); // classname을 추가하는 방식으로는 왜 동작하지않을까..
+
   async function fetchNavigation() {
     const response = await fetch('/api/navigations', { headers: { 'Content-type': 'application/json' } });
     const data = await response.json();
@@ -14,15 +28,15 @@ worker.start().then(async () => {
   const secondBoard = document.querySelector('.second');
   const thirdsBoard = document.querySelector('.thirds');
 
-  function createElement({ id, text }) {
+  function createElement({ id, title }) {
     const categoryEle = document.createElement('p');
     categoryEle.setAttribute('id', id);
-    categoryEle.innerText = text;
+    categoryEle.innerText = title;
     return categoryEle;
   }
 
   navigation.forEach(category => {
-    const children = navigation.find(ele => ele.id === category.id).groups;
+    const children = navigation.find(ele => ele.id === category.id).children;
 
     const element = createElement({
       currentParent: firstBoard,
@@ -32,7 +46,7 @@ worker.start().then(async () => {
       children,
     });
 
-    element.addEventListener('click', e => {
+    element.addEventListener('mouseover', e => {
       const { id: targetId } = e.target;
 
       for (let i = 0; i < firstBoard.children.length; i++) {
@@ -50,11 +64,11 @@ worker.start().then(async () => {
         secondBoard.innerHTML = '';
       }
 
-      const children = navigation.find(ele => ele.id === targetId).groups;
+      const children = navigation.find(ele => ele.id === targetId).children;
       children.forEach(group => {
-        const element = createElement({ id: group.id, text: group.group });
+        const element = createElement({ id: group.id, title: group.title });
 
-        element.addEventListener('click', e => {
+        element.addEventListener('mouseover', e => {
           const { id: targetId } = e.target;
 
           for (let i = 0; i < secondBoard.children.length; i++) {
@@ -73,8 +87,8 @@ worker.start().then(async () => {
             thirdsBoard.innerHTML = '';
           }
 
-          group.services.forEach(ele => {
-            const element = createElement({ id: ele, text: ele });
+          group.children.forEach(ele => {
+            const element = createElement({ id: ele, title: ele });
             thirdsBoard.append(element);
           });
         });

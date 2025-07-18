@@ -2,8 +2,8 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #000000;
-  background-color: #ffffff;
+  color: #ffffff;
+  background-color: rgb(66, 68, 73);
 }
 
 body {
@@ -14,22 +14,52 @@ body {
 
 #app {
   max-width: 1280px;
-  margin: 0 auto;
   display: flex;
 }
 
+nav {
+  width: 80px;
+  height: 40px;
+  border: 1px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+nav:hover {
+  color: skyblue;
+}
+
+#menu {
+  display: none;
+  position: absolute;
+  left: 10px;
+  top: 50px;
+}
+
 .board {
-  border: 1px solid black;
+  border-left: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
   width: 200px;
   height: 400px;
   padding: 0 20px;
   box-sizing: border-box;
 }
 
+.board:last-child {
+  border-right: 1px solid #ffffff;
+}
+
 p {
   cursor: pointer;
 }
 
+p:hover {
+  color: skyblue;
+}
+
 .selected {
-  background-color: yellow;
+  color: skyblue;
 }
