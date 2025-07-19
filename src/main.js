@@ -1,116 +1,151 @@
 import './style.css';
 import { worker } from './mock/browser';
 
-/**
- * 디자인 패턴 중 상태 패턴의 사용이 적절해 보이긴 함..
- * 어떠한 이벤트의 발생으로 UI의 변화가 발생하니까..?
- *  mouseover
- * clickMenu
- */
+async function fetchNavigation() {
+  const response = await fetch('/api/navigations', { headers: { 'Content-type': 'application/json' } });
+  const data = await response.json();
+  return data;
+}
 
-worker.start().then(async () => {
-  const navbar = document.querySelector('nav');
+function flattenNavigation(navigationData) {
+  const flattened = {};
 
-  navbar.addEventListener('click', () => {
-    const menu = document.querySelector('#menu');
-    menu.style.display = 'flex';
-  }); // classname을 추가하는 방식으로는 왜 동작하지않을까..
+  function processItem(item, depth = 0) {
+    const childrenIds = item.children ? item.children.map(child => child.id) : [];
 
-  async function fetchNavigation() {
-    const response = await fetch('/api/navigations', { headers: { 'Content-type': 'application/json' } });
-    const data = await response.json();
-    return data;
+    flattened[item.id] = {
+      id: item.id,
+      title: item.title,
+      children: childrenIds,
+      depth,
+    };
+
+    if (item.children && item.children.length > 0) {
+      item.children.forEach(item => processItem(item, depth + 1));
+    }
   }
 
-  const { navigation } = await fetchNavigation();
+  navigationData.forEach(item => processItem(item));
+  return flattened;
+}
 
-  const firstBoard = document.querySelector('.first');
-  const secondBoard = document.querySelector('.second');
-  const thirdsBoard = document.querySelector('.thirds');
+function createElement({ id, title, isSelected }) {
+  const categoryEle = document.createElement('p');
+  categoryEle.setAttribute('data-id', id);
+  categoryEle.innerText = title;
 
-  function createElement({ id, title }) {
-    const categoryEle = document.createElement('p');
-    categoryEle.setAttribute('id', id);
-    categoryEle.innerText = title;
-    return categoryEle;
+  if (isSelected) {
+    categoryEle.classList.add('selected');
   }
 
-  navigation.forEach(category => {
-    const children = navigation.find(ele => ele.id === category.id).children;
+  return categoryEle;
+}
 
+function renderBoard(board, items, selectedItemId) {
+  if (!items) {
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  items.forEach(item => {
     const element = createElement({
-      currentParent: firstBoard,
-      nextParent: secondBoard,
-      id: category.id,
-      text: category.category,
-      children,
+      id: item.id,
+      title: item.title,
+      isSelected: item.id === selectedItemId,
     });
 
-    element.addEventListener('mouseover', e => {
-      const { id: targetId } = e.target;
+    fragment.appendChild(element);
+  });
 
-      for (let i = 0; i < firstBoard.children.length; i++) {
-        if (firstBoard.children[i].classList.contains('selected')) {
-          firstBoard.children[i].classList.remove('selected');
-        }
-      }
-      element.classList.add('selected');
+  board.replaceChildren(fragment);
+}
 
-      if (secondBoard.firstElementChild && secondBoard.firstElementChild.id === targetId) {
+function getItemsByDepth(items, depth) {
+  return Object.entries(items)
+    .filter(([_, item]) => item.depth === depth)
+    .map(([_, item]) => item);
+}
+
+const firstBoard = document.querySelector('.first');
+const secondBoard = document.querySelector('.second');
+const thirdsBoard = document.querySelector('.thirds');
+
+function renderAllBoards(selectedPath, flattenedNavigation) {
+  const depth0Items = getItemsByDepth(flattenedNavigation, 0);
+  const depth1Items = selectedPath[0]
+    ? flattenedNavigation[selectedPath[0]].children.map(id => flattenedNavigation[id])
+    : [];
+  const depth2Items = selectedPath[1]
+    ? flattenedNavigation[selectedPath[1]].children.map(id => flattenedNavigation[id])
+    : [];
+
+  renderBoard(firstBoard, depth0Items, selectedPath[0]);
+  renderBoard(secondBoard, depth1Items, selectedPath[1]);
+  renderBoard(thirdsBoard, depth2Items);
+}
+
+function createMenuState(flattenedNavigation) {
+  const selectedPath = [null, null, null];
+
+  return {
+    setSelectedItem(itemId, depth) {
+      if (selectedPath[depth] === itemId) {
         return;
       }
 
-      if (secondBoard.childNodes.length > 0) {
-        secondBoard.innerHTML = '';
+      for (let i = depth + 1; i < selectedPath.length; i++) {
+        selectedPath[i] = null;
       }
 
-      const children = navigation.find(ele => ele.id === targetId).children;
-      children.forEach(group => {
-        const element = createElement({ id: group.id, title: group.title });
+      selectedPath[depth] = itemId;
 
-        element.addEventListener('mouseover', e => {
-          const { id: targetId } = e.target;
+      this.updateUI();
+    },
+    updateUI() {
+      renderAllBoards(selectedPath, flattenedNavigation);
+    },
+  };
+}
 
-          for (let i = 0; i < secondBoard.children.length; i++) {
-            if (secondBoard.children[i].classList.contains('selected')) {
-              secondBoard.children[i].classList.remove('selected');
-            }
-          }
+worker.start().then(async () => {
+  const { navigation } = await fetchNavigation();
+  const flattenedNavigation = flattenNavigation(navigation);
+  const menuState = createMenuState(flattenedNavigation);
+  const navbar = document.querySelector('nav');
+  const menu = document.querySelector('#menu');
 
-          element.classList.add('selected');
+  let isMenuInitialized = false;
 
-          if (thirdsBoard.firstElementChild && thirdsBoard.firstElementChild.id === targetId) {
-            return;
-          }
+  navbar.addEventListener('click', () => {
+    menu.style.display = 'flex';
+    menuState.updateUI();
 
-          if (thirdsBoard.childNodes.length > 0) {
-            thirdsBoard.innerHTML = '';
-          }
+    if (isMenuInitialized) {
+      return;
+    }
 
-          group.children.forEach(ele => {
-            const element = createElement({ id: ele, title: ele });
-            thirdsBoard.append(element);
-          });
-        });
+    isMenuInitialized = true;
 
-        secondBoard.appendChild(element);
-      });
+    menu.addEventListener('mouseover', e => {
+      const board = e.target.closest('.first, .second, .thirds');
+      let depth;
 
-      thirdsBoard.innerHTML = '';
+      if (board.classList.contains('first')) {
+        depth = 0;
+      }
+
+      if (board.classList.contains('second')) {
+        depth = 1;
+      }
+
+      const targetId = e.target.dataset.id;
+
+      if (!targetId) {
+        return;
+      }
+
+      menuState.setSelectedItem(targetId, depth);
     });
-
-    firstBoard.append(element);
   });
 });
-
-/**
- * 1. first를 잡는다.
- * 2. span 태그를 가진 요소를 만든다.
- * 3. 만든 span태그 안에 innerText를 추가한다.
- * 4. 만든 요소를 first태그에 추가한다.
- */
-
-/**
- * categoryEle를 클릭하면,
- * 클릭한 category id를 가지고 MOCK_DATA에서 카테고리를 찾아서 groups를 second board에 보여주자.
- */
