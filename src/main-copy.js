@@ -1,5 +1,4 @@
 import './style.css';
-import { worker } from './mock/browser';
 
 /**
  * 디자인 패턴 중 상태 패턴의 사용이 적절해 보이긴 함..

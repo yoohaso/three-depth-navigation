@@ -1,5 +1,4 @@
 import './style.css';
-import { worker } from './mock/browser';
 
 async function fetchNavigation() {
   const response = await fetch('/api/navigations', { headers: { 'Content-type': 'application/json' } });

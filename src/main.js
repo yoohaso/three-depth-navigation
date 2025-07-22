@@ -1,10 +1,9 @@
 import './style.css';
-import { worker } from './mock/browser';
 
 async function fetchNavigation() {
-  const response = await fetch('/api/navigations', { headers: { 'Content-type': 'application/json' } });
+  const response = await fetch('https://menu-mock-api.vercel.app/api/menu');
   const data = await response.json();
-  return data;
+  return data.data;
 }
 
 function flattenNavigation(navigationData) {
@@ -108,44 +107,42 @@ function createMenuState(flattenedNavigation) {
   };
 }
 
-worker.start().then(async () => {
-  const { navigation } = await fetchNavigation();
-  const flattenedNavigation = flattenNavigation(navigation);
-  const menuState = createMenuState(flattenedNavigation);
-  const navbar = document.querySelector('nav');
-  const menu = document.querySelector('#menu');
+const data = await fetchNavigation();
+const flattenedNavigation = flattenNavigation(data);
+const menuState = createMenuState(flattenedNavigation);
+const navbar = document.querySelector('nav');
+const menu = document.querySelector('#menu');
 
-  let isMenuInitialized = false;
+let isMenuInitialized = false;
 
-  navbar.addEventListener('click', () => {
-    menu.style.display = 'flex';
-    menuState.updateUI();
+navbar.addEventListener('click', () => {
+  menu.style.display = 'flex';
+  menuState.updateUI();
 
-    if (isMenuInitialized) {
+  if (isMenuInitialized) {
+    return;
+  }
+
+  isMenuInitialized = true;
+
+  menu.addEventListener('mouseover', e => {
+    const board = e.target.closest('.first, .second, .thirds');
+    let depth;
+
+    if (board.classList.contains('first')) {
+      depth = 0;
+    }
+
+    if (board.classList.contains('second')) {
+      depth = 1;
+    }
+
+    const targetId = e.target.dataset.id;
+
+    if (!targetId) {
       return;
     }
 
-    isMenuInitialized = true;
-
-    menu.addEventListener('mouseover', e => {
-      const board = e.target.closest('.first, .second, .thirds');
-      let depth;
-
-      if (board.classList.contains('first')) {
-        depth = 0;
-      }
-
-      if (board.classList.contains('second')) {
-        depth = 1;
-      }
-
-      const targetId = e.target.dataset.id;
-
-      if (!targetId) {
-        return;
-      }
-
-      menuState.setSelectedItem(targetId, depth);
-    });
+    menuState.setSelectedItem(targetId, depth);
   });
 });
