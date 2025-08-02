@@ -32,8 +32,12 @@ nav:hover {
   color: skyblue;
 }
 
-#menu {
-  display: none;
+#nav-root {
+  display: flex;
+}
+
+#menu-root {
+  display: flex;
   position: absolute;
   left: 10px;
   top: 50px;
@@ -52,14 +56,10 @@ nav:hover {
   border-right: 1px solid #ffffff;
 }
 
-p {
+.menu-item {
   cursor: pointer;
 }
 
-p:hover {
-  color: skyblue;
-}
-
-.selected {
+.menu-item.selected {
   color: skyblue;
 }
